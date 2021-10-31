@@ -1,24 +1,92 @@
-import React, {useState} from 'react';
-import { Text, View, StyleSheet, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, Pressable, Keyboard } from 'react-native';
+import React, { useState, useEffect} from 'react';
+import { Text, View, StyleSheet, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, Pressable, Keyboard, Alert } from 'react-native';
+import * as SQLite from 'expo-sqlite';
+
+const db = SQLite.openDatabase({
+  name: 'toDoDatabase.db',
+  location: 'default',
+ },
+ () => { },
+ errors =>{console.log(errors)});
+
+const tableName = 'toDoList';
 
 const ToDoList = ({ route }) => {
 
+  useEffect(() => {
+    createTable();
+    getData();
+  }, []);
+
+  const createTable = () => {
+    db.transaction((tx) => {
+      tx.executeSql(
+        "CREATE TABLE IF NOT EXISTS "
+        + `${tableName} `
+        + "(id INTEGER PRIMARY KEY AUTOINCREMENT, task TEXT, complete BOOLEAN NOT NULL CHECK (complete IN (0, 1)))"
+      )
+    })
+  }
+
   const [task, setTask] = useState('');
   const [taskObject, setTaskObject] = useState({
+    id: null,
     task: '',
     complete: false,
-    edit: false
+    edit: false,
   })
   const [taskItems, setTaskItems] = useState([]);
+
+  const getData = () => {
+    db.transaction((tx) => {
+      tx.executeSql(
+        `SELECT * FROM ${tableName}`,
+        [],
+        (tx, results) => {
+          let tempTaskItems = [];
+          for (let i = 0; i < results.rows.length; i++) {
+            let rowID = results.rows.item(0).id;
+            let rowTask = results.rows.item(0).task;
+            let rowComplete = intToBoolean(results.rows.item(0).complete);
+
+            let tempTaskObject = ({
+              id: rowID,
+              task: rowTask,
+              complete: rowComplete,
+              edit: false,
+            })
+            tempTaskItems.push(tempTaskObject);
+            setTaskItems=(tempTaskItems);
+          }
+        }
+      )
+    })
+  }
 
   const markTaskComplete = (index) => {
     let myTask = taskItems[index];
     if (myTask.complete === false) {
+      db.transaction((tx) => {
+        tx.executeSql(
+          `UPDATE ${tableName} SET complete=1 WHERE ID=${myTask.id}`,
+          [],
+          () => { Alert.alert('Nice Job!', `Your task was marked complete!`)},
+          error => {console.log(error)}
+        )
+      })
       myTask.complete = true;
       let itemsCopy = [...taskItems];
       itemsCopy.splice(index, 1, myTask);
       setTaskItems(itemsCopy);
     } else if (myTask.complete === true) {
+      db.transaction((tx) => {
+        tx.executeSql(
+          `UPDATE ${tableName} SET complete=0 WHERE ID=${myTask.id}`,
+          [],
+          () => { Alert.alert(`Your task was marked incomplete.`)},
+          error => {console.log(error)}
+        )
+      })
       myTask.complete = false
       let itemsCopy = [...taskItems];
       itemsCopy.splice(index, 1, myTask);
@@ -36,18 +104,44 @@ const ToDoList = ({ route }) => {
 
   const saveTaskObject = (text) => {
     setTask(text);
-    setTaskObject({ 
+    setTaskObject({
+      id: null, 
       task: text ,
       complete: false,
       edit: false
      });
   }
 
-  const handleAddTask = () => {
+  const booleanToInt = (object) => {
+    if (object.complete === true){
+      return 1
+    } else if (object.complete === false){
+      return 0
+    }
+  }
+
+  const intToBoolean = (object) => {
+    if (object.complete === 1){
+      return true
+    } else if (object.complete === 0){
+      return false
+    }
+  }
+
+  const handleAddTask = async () => {
     Keyboard.dismiss();
+    await db.transaction(async (tx)=>{
+      await tx.executeSql(
+        `INSERT INTO ${tableName} (task, complete) VALUES ('${taskObject.task}', '${booleanToInt(taskObject.complete)}')`,
+        [],
+        () => { Alert.alert('Success', `${taskObject.task} was added to your to do list.`)},
+        error => {console.log(error)}
+      )
+    })
     setTaskItems([...taskItems, taskObject]);
     setTask('');
     setTaskObject({
+      id: null,
       task: '',
       complete: false,
       edit: false
@@ -65,6 +159,14 @@ const ToDoList = ({ route }) => {
   const handelUpdateTask = (index) => {
     Keyboard.dismiss();
     let myTask = taskItems[index];
+    db.transaction((tx) => {
+      tx.executeSql(
+        `UPDATE ${tableName} SET task=${myTask.task} WHERE ID=${myTask.id}`,
+        [],
+        () => { Alert.alert('Success!', `Your task was updated to ${myTask.task}.`)},
+        error => {console.log(error)}
+      )
+    })
     myTask.edit = false;
     let itemsCopy = [...taskItems];
     itemsCopy.splice(index, 1, myTask);
@@ -73,6 +175,15 @@ const ToDoList = ({ route }) => {
 
   const deleteTask = (index) => {
     let itemsCopy = [...taskItems];
+    db.transaction((tx) => {
+      tx.executeSql(
+        `DELETE FROM ${tableName} WHERE id=${taskItems[index].id}`,
+        [],
+        () => { Alert.alert(`${taskItems[index].id} deleted from to do list.`)},
+        error => {console.log(error)}
+
+      )
+    })
     itemsCopy.splice(index, 1);
     setTaskItems(itemsCopy);
   }
@@ -221,7 +332,7 @@ const ToDoList = ({ route }) => {
   },
   itemText: {
     maxWidth: '80%',
-    with: 100,
+    width: 100,
   },
   textContainer: {
     maxWidth: '80%',
