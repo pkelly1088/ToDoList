@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import { Text, View, TextInput, Pressable, StyleSheet, Keyboard } from 'react-native';
+import { Text, View, TextInput, Pressable, StyleSheet, Keyboard, Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
@@ -12,9 +12,13 @@ const Login = ({ route }) => {
 
   const handleUserLogin = () => {
     Keyboard.dismiss();
-    navigation.navigate('ToDoList', {
-      paramKey: userName,
-    });
+    if (userName === ''){
+      Alert.alert('Please enter a name to access to do list.')
+    } else if (userName !== ''){
+      navigation.navigate('ToDoList', {
+        paramKey: userName,
+      });
+    }
   }
 
     return(
