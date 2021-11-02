@@ -2,23 +2,33 @@ import React, { useState, useEffect} from 'react';
 import { Text, View, StyleSheet, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, Pressable, Keyboard, Alert } from 'react-native';
 import * as SQLite from 'expo-sqlite';
 
-const db = SQLite.openDatabase({
-  name: 'toDoDatabase.db',
-  location: 'default',
- },
- () => { },
- errors =>{Alert.alert(errors)});
+function openDatabase() {
+  if (Platform.OS === "web") {
+    return {
+      transaction: () => {
+        return {
+          executeSql: () => {},
+        };
+      },
+    };
+  }
+
+  const db = SQLite.openDatabase("toDoList.db");
+  return db;
+}
+
+const db = openDatabase();
 
 const ToDoList = ({ route }) => {
 
   useEffect(() => {
-    createTable();
     getData();
+    createTable();
   }, []);
 
   const createTable = () => {
     db.transaction((tx) => {
-      tx.executeSql('CREATE TABLE IF NOT EXISTS toDoList(id INTEGER PRIMARY KEY AUTOINCREMENT, task TEXT, complete BOOLEAN NOT NULL CHECK (complete IN (0, 1)))')
+      tx.executeSql('CREATE TABLE IF NOT EXISTS toDoList (id INTEGER PRIMARY KEY AUTOINCREMENT, task TEXT, complete BOOLEAN NOT NULL CHECK (complete IN (0, 1)))')
     })
   }
 
@@ -32,56 +42,63 @@ const ToDoList = ({ route }) => {
   const [taskItems, setTaskItems] = useState([]);
 
   const getData = () => {
-    db.transaction((tx) => {
-      tx.executeSql(
-        'SELECT * FROM toDoList',
-        [],
-        (tx, results) => {
-          for (let i = 0; i < results.rows.length; i++) {
-            let rowID = results.rows.item(i).id;
-            let rowTask = results.rows.item(i).task;
-            let rowComplete = intToBoolean(results.rows.item(i).complete);
-            let tempTaskObject = ({
-              id: rowID,
-              task: rowTask,
-              complete: rowComplete,
-              edit: false,
-            })
-            setTaskItems([...taskItems, tempTaskObject]);
-          }
-        }
-      )
-    })
+    try {
+      db.transaction((tx) => {
+            tx.executeSql(
+              'SELECT * FROM toDoList',
+              [],
+              (tx, results) => {
+                if(results.rows.length > 0){
+                  let itemsCopy = [...taskItems];
+                  for (let i = 0; i < results.rows.length; i++) {
+                    let tempTaskObject = {
+                      id: results.rows.item(i).id,
+                      task: results.rows.item(i).task,
+                      complete: intToBoolean(results.rows.item(i).complete),
+                      edit: false,
+                    };
+                    itemsCopy.push(tempTaskObject);
+                  }
+                  setTaskItems(itemsCopy);
+                }
+              }
+            )
+          })
+      
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   const markTaskComplete = (index) => {
     let myTask = taskItems[index];
+    let taskId = myTask.id
     if (myTask.complete === false) {
       db.transaction((tx) => {
         tx.executeSql(
-          `UPDATE toDoList SET complete=1 WHERE ID=${myTask.id}`,
-          [],
-          () => { Alert.alert('Nice Job!', `Your task was marked complete!`)},
-          error => {error}
+          `UPDATE toDoList SET complete=1 WHERE ID=?`,
+          [taskId],
+          () => {Alert.alert(`Success`, `${myTask.task} complete!`) },
+          error => {console.log(error)}
         )
       })
-      // myTask.complete = true;
-      // let itemsCopy = [...taskItems];
-      // itemsCopy.splice(index, 1, myTask);
-      // setTaskItems(itemsCopy);
+      myTask.complete = true;
+      let itemsCopy = [...taskItems];
+      itemsCopy.splice(index, 1, myTask);
+      setTaskItems(itemsCopy);
     } else if (myTask.complete === true) {
       db.transaction((tx) => {
         tx.executeSql(
-          `UPDATE toDoList SET complete=0 WHERE ID=${myTask.id}`,
-          [],
-          () => { Alert.alert(`Your task was marked incomplete.`)},
-          error => {error}
+          `UPDATE toDoList SET complete=0 WHERE ID=?`,
+          [taskId],
+          () => {Alert.alert('Task changed to incomplete') },
+          error => {console.log(error)}
         )
       })
-      // myTask.complete = false
-      // let itemsCopy = [...taskItems];
-      // itemsCopy.splice(index, 1, myTask);
-      // setTaskItems(itemsCopy); 
+      myTask.complete = false
+      let itemsCopy = [...taskItems];
+      itemsCopy.splice(index, 1, myTask);
+      setTaskItems(itemsCopy); 
     }
   }
 
@@ -101,27 +118,28 @@ const ToDoList = ({ route }) => {
       complete: false,
       edit: false
      });
-     db.transaction((tx)=>{
-      tx.executeSql(
-        'INSERT INTO toDoList(task, complete) VALUES (' + text + ', 0 )',
-        [],
-        () => { Alert.alert('Success', `${taskObject.task} was added to your to do list.`)},
-        (error) => {Alert.alert('Error Saving Task', error)}
-      )
-    })
+  
   }
 
   const intToBoolean = (object) => {
-    if (object.complete === 1){
+    if (object === 1){
       return true
-    } else if (object.complete === 0){
+    } else if (object === 0){
       return false
     }
   }
 
   const handleAddTask = () => {
     Keyboard.dismiss();
-    // setTaskItems([...taskItems, taskObject]);
+    db.transaction((tx)=>{
+      tx.executeSql(
+        'INSERT INTO toDoList (task, complete) VALUES (?,?)',
+        [task, 0],
+        () => { Alert.alert('Success', `${taskObject.task} was added to your to do list.`)},
+        (error) => {console.log('Error Saving Task', error)}
+      )
+    });
+    setTaskItems([...taskItems, taskObject]);
     setTask('');
     setTaskObject({
       id: null,
@@ -144,10 +162,10 @@ const ToDoList = ({ route }) => {
     let myTask = taskItems[index];
     db.transaction((tx) => {
       tx.executeSql(
-        `UPDATE toDoList SET task=${myTask.task} WHERE ID=${myTask.id}`,
-        [],
-        () => { Alert.alert('Success!', `Your task was updated to ${myTask.task}.`)},
-        error => {console.log(error)}
+        `UPDATE toDoList SET task=? WHERE ID=?`,
+        [myTask.task, myTask.id],
+        () => {Alert.alert('Success', `Task updated to ${myTask.task}`) },
+        error => {console.log('Error!', error)}
       )
     })
     myTask.edit = false;
@@ -157,23 +175,24 @@ const ToDoList = ({ route }) => {
   }
 
   const deleteTask = (index) => {
-    // let itemsCopy = [...taskItems];
+    let itemsCopy = [...taskItems];
+    let myTask = itemsCopy[index];
     db.transaction((tx) => {
       tx.executeSql(
-        `DELETE FROM toDoList WHERE id=${taskItems[index].id}`,
-        [],
-        () => { Alert.alert(`${taskItems[index].id} deleted from to do list.`)},
+        `DELETE FROM toDoList WHERE ID=?`,
+        [myTask.id],
+        () => {Alert.alert(`Task ${myTask.task} deleted`) },
         error => {console.log(error)}
-
       )
     })
-    // itemsCopy.splice(index, 1);
-    // setTaskItems(itemsCopy);
+    itemsCopy.splice(index, 1);
+    setTaskItems(itemsCopy);
   }
 
   const check = "\u2713";
 
     return (
+      
       <View style={styles.container}>
   
         <View style={styles.tasksWrapper}>
