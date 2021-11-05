@@ -2,7 +2,8 @@ import React, {useState} from 'react';
 import { Text, View, TextInput, Pressable, StyleSheet, Keyboard, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
-const Login = ({ route }) => {
+
+const Login = () => {
 
   const [userName, setUserName] = useState('');
 

@@ -3,6 +3,7 @@ import { Text, View, StyleSheet, KeyboardAvoidingView, Platform, TextInput, Touc
 import * as SQLite from 'expo-sqlite';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 
+
 function openDatabase() {
   if (Platform.OS === "web") {
     return {
@@ -38,13 +39,7 @@ const ToDoList = ({ route }) => {
     })
   }
 
-  const [task, setTask] = useState('');
-  const [taskObject, setTaskObject] = useState({
-    id: null,
-    task: '',
-    complete: false,
-    edit: false,
-  })
+
   const [taskItems, setTaskItems] = useState([]);
 
   const getData = () => {

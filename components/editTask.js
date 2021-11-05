@@ -20,7 +20,7 @@ function openDatabase() {
   
   const db = openDatabase();
 
-const addTask = ({route}) => {
+const editTask = ({route}) => {
 
 
     useEffect(() => {
@@ -55,12 +55,6 @@ const addTask = ({route}) => {
     }
 
   const [task, setTask] = useState('');
-  const [taskObject, setTaskObject] = useState({
-    id: null,
-    task: '',
-    complete: false,
-    edit: false,
-  })
   const [taskItems, setTaskItems] = useState([]);
 
   const navigation = useNavigation();
@@ -173,4 +167,4 @@ const styles = StyleSheet.create({
       },
 });
 
-export default addTask;
+export default editTask;

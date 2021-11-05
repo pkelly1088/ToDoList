@@ -3,6 +3,7 @@ import { Text, View, TextInput, Pressable, StyleSheet, Keyboard, Alert } from 'r
 import { useNavigation } from '@react-navigation/native';
 import * as SQLite from 'expo-sqlite';
 
+
 function openDatabase() {
     if (Platform.OS === "web") {
       return {
@@ -42,13 +43,6 @@ const addTask = ({route}) => {
   })
   const [taskItems, setTaskItems] = useState([]);
 
-  const intToBoolean = (object) => {
-    if (object === 1){
-      return true
-    } else if (object === 0){
-      return false
-    }
-  }
 
   const saveTaskObject = (text) => {
     setTask(text);
