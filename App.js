@@ -6,23 +6,8 @@ import { useNavigation } from '@react-navigation/native';
 
 import Login from './components/Login';
 import ToDoList from './components/ToDoList';
-
-import * as SQLite from 'expo-sqlite';
-
-function openDatabase() {
-  if (Platform.OS === "web") {
-    return {
-      transaction: () => {
-        return {
-          executeSql: () => {},
-        };
-      },
-    };
-  }
-
-  const db = SQLite.openDatabase("toDoList.db");
-  return db;
-}
+import addTask from './components/addTask';
+import editTask from './components/editTask';
 
 export default function App() {
 
@@ -37,6 +22,14 @@ const Stack = createNativeStackNavigator();
         <Stack.Screen 
           name='ToDoList' 
           component={ToDoList} 
+          />
+        <Stack.Screen 
+          name='addTask' 
+          component={addTask} 
+          />
+        <Stack.Screen 
+          name='editTask' 
+          component={editTask} 
           />
       </Stack.Navigator>
     </NavigationContainer>

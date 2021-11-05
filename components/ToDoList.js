@@ -1,6 +1,7 @@
 import React, { useState, useEffect} from 'react';
 import { Text, View, StyleSheet, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, Pressable, Keyboard, Alert } from 'react-native';
 import * as SQLite from 'expo-sqlite';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 
 function openDatabase() {
   if (Platform.OS === "web") {
@@ -21,10 +22,15 @@ const db = openDatabase();
 
 const ToDoList = ({ route }) => {
 
+  const navigation = useNavigation();
+
+  const isFocused = useIsFocused();
+
   useEffect(() => {
+    console.log("Focused: ", isFocused);
     getData();
     createTable();
-  }, []);
+  }, [isFocused]);
 
   const createTable = () => {
     db.transaction((tx) => {
@@ -42,14 +48,13 @@ const ToDoList = ({ route }) => {
   const [taskItems, setTaskItems] = useState([]);
 
   const getData = () => {
-    try {
       db.transaction((tx) => {
             tx.executeSql(
               'SELECT * FROM toDoList',
               [],
               (tx, results) => {
                 if(results.rows.length > 0){
-                  let itemsCopy = [...taskItems];
+                  let itemsCopy = [];
                   for (let i = 0; i < results.rows.length; i++) {
                     let tempTaskObject = {
                       id: results.rows.item(i).id,
@@ -64,10 +69,6 @@ const ToDoList = ({ route }) => {
               }
             )
           })
-      
-    } catch (error) {
-      console.log(error);
-    }
   }
 
   const markTaskComplete = (index) => {
@@ -102,76 +103,12 @@ const ToDoList = ({ route }) => {
     }
   }
 
-  const makeEditable = (index) => {
-    let myTask = taskItems[index];
-    myTask.edit = true;
-    let itemsCopy = [...taskItems];
-    itemsCopy.splice(index, 1, myTask);
-    setTaskItems(itemsCopy);
-  }
-
-  const saveTaskObject = (text) => {
-    setTask(text);
-    setTaskObject({
-      id: null, 
-      task: text ,
-      complete: false,
-      edit: false
-     });
-  
-  }
-
   const intToBoolean = (object) => {
     if (object === 1){
       return true
     } else if (object === 0){
       return false
     }
-  }
-
-  const handleAddTask = () => {
-    Keyboard.dismiss();
-    db.transaction((tx)=>{
-      tx.executeSql(
-        'INSERT INTO toDoList (task, complete) VALUES (?,?)',
-        [task, 0],
-        () => { Alert.alert('Success', `${taskObject.task} was added to your to do list.`)},
-        (error) => {console.log('Error Saving Task', error)}
-      )
-    });
-    setTaskItems([...taskItems, taskObject]);
-    setTask('');
-    setTaskObject({
-      id: null,
-      task: '',
-      complete: false,
-      edit: false
-    })
-  }
-
-  const updateTaskObject = (text, index) => {
-    let myTask = taskItems[index];
-    myTask.task = text;
-    let itemsCopy = [...taskItems];
-    itemsCopy.splice(index, 1, myTask);
-    setTaskItems(itemsCopy);
-  }
-    
-  const handelUpdateTask = (index) => {
-    Keyboard.dismiss();
-    let myTask = taskItems[index];
-    db.transaction((tx) => {
-      tx.executeSql(
-        `UPDATE toDoList SET task=? WHERE ID=?`,
-        [myTask.task, myTask.id],
-        () => {Alert.alert('Success', `Task updated to ${myTask.task}`) },
-        error => {console.log('Error!', error)}
-      )
-    })
-    myTask.edit = false;
-    let itemsCopy = [...taskItems];
-    itemsCopy.splice(index, 1, myTask);
-    setTaskItems(itemsCopy);
   }
 
   const deleteTask = (index) => {
@@ -209,18 +146,14 @@ const ToDoList = ({ route }) => {
                         : <View style={styles.squareGrey}></View>
                       }
                       </TouchableOpacity>
-                      <TouchableOpacity style={styles.textContainer} onPress={() => makeEditable(index)}>
-                        {item.edit === false 
-                          ? <Text style={styles.itemText}>{item.task}</Text>
-                          : <View style={styles.editText}>
-                              <TextInput style={styles.updateInput} defaultValue={item.task} onChangeText={(text) => updateTaskObject(text, index)} />
-                              <Pressable style={styles.updateButton} onPress={() => handelUpdateTask(index)}>
-                                <Text style={styles.updateText}>Update</Text>
-                              </Pressable>
-                            </View>
-                        }
-                      </TouchableOpacity>
+                      <Text style={styles.itemText}>{item.task}</Text>
                     </View>
+                    <Pressable style={styles.updateButton} onPress={() => navigation.navigate('editTask', {
+                      index: index,
+                      task: item.task,
+                    })}>
+                      <Text style={styles.updateText}>Edit</Text>
+                    </Pressable>
                     <Pressable style={styles.deleteButton} onPress={() => deleteTask(index)}>
                       <Text style={styles.deleteText}>Delete</Text>
                     </Pressable>
@@ -234,8 +167,7 @@ const ToDoList = ({ route }) => {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.writeTaskWrapper}
         >
-          <TextInput style={styles.input} placeholder={'Write a task'} value={task} onChangeText={(text) => saveTaskObject(text)} />
-          <TouchableOpacity onPress={() => handleAddTask()}>
+          <TouchableOpacity  onPress={() => navigation.navigate('addTask')}>
             <View style={styles.addWrapper}>
               <Text style={styles.addText}>+</Text>
             </View>

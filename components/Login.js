@@ -1,24 +1,6 @@
 import React, {useState} from 'react';
 import { Text, View, TextInput, Pressable, StyleSheet, Keyboard, Alert } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
-import * as SQLite from 'expo-sqlite';
-
-function openDatabase() {
-  if (Platform.OS === "web") {
-    return {
-      transaction: () => {
-        return {
-          executeSql: () => {},
-        };
-      },
-    };
-  }
-
-  const db = SQLite.openDatabase("toDoList.db");
-  return db;
-}
 
 const Login = ({ route }) => {
 
