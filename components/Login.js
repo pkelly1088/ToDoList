@@ -2,7 +2,6 @@ import React, {useState} from 'react';
 import { Text, View, TextInput, Pressable, StyleSheet, Keyboard, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
-
 const Login = () => {
 
   const [userName, setUserName] = useState('');
@@ -14,7 +13,7 @@ const Login = () => {
     if (userName === ''){
       Alert.alert('Please enter a name to access to do list.')
     } else if (userName !== ''){
-      navigation.navigate('ToDoList', {
+      navigation.navigate('To Do List', {
         paramKey: userName,
       });
     }

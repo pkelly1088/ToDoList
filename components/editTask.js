@@ -42,8 +42,8 @@ const editTask = ({route}) => {
                       let tempTaskObject = {
                         id: results.rows.item(i).id,
                         task: results.rows.item(i).task,
+                        photo: JSON.parse(results.rows.item(i).photo),
                         complete: intToBoolean(results.rows.item(i).complete),
-                        edit: false,
                       };
                       itemsCopy.push(tempTaskObject);
                     }
@@ -87,14 +87,10 @@ const editTask = ({route}) => {
         error => {console.log('Error!', error)}
       )
     })
-    myTask.edit = false;
     let itemsCopy = [...taskItems];
     itemsCopy.splice(route.params.index, 1, myTask);
     setTaskItems(itemsCopy);
-    navigation.navigate({
-        name: 'ToDoList',
-        merge: true,
-      });
+    navigation.goBack();
     }
 
     return(
@@ -104,8 +100,8 @@ const editTask = ({route}) => {
             <View style={styles.addItemSection}>
                 <Text style={styles.addText}>Task</Text>
                 <TextInput style={styles.input} defaultValue={route.params.task} placeholder={'Enter Task Here'} onChangeText={(text) => updateTaskObject(text)}/>
-                <Pressable style={styles.addButton} onPress={() => handleUpdateTask()}>
-                    <Text style={styles.addBtnText}>Submit</Text>
+                <Pressable style={styles.editButton} onPress={() => handleUpdateTask()}>
+                    <Text style={styles.editBtnText}>Submit</Text>
                 </Pressable>
             </View>
         </View>
@@ -137,7 +133,7 @@ const styles = StyleSheet.create({
         borderColor: '#C0C0C0',
         borderWidth: 1,
       },
-    addButton: {
+    editButton: {
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 6,
@@ -148,7 +144,7 @@ const styles = StyleSheet.create({
         marginHorizontal: 20,
         marginTop: 20,
       },
-      addBtnText: {
+      editBtnText: {
         paddingVertical: 6,
         paddingHorizontal: 16,
         fontSize: 16,

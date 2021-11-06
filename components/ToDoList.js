@@ -1,5 +1,5 @@
 import React, { useState, useEffect} from 'react';
-import { Text, View, StyleSheet, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, Pressable, Keyboard, Alert } from 'react-native';
+import { Text, View, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity, Pressable, Alert } from 'react-native';
 import * as SQLite from 'expo-sqlite';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 
@@ -35,7 +35,7 @@ const ToDoList = ({ route }) => {
 
   const createTable = () => {
     db.transaction((tx) => {
-      tx.executeSql('CREATE TABLE IF NOT EXISTS toDoList (id INTEGER PRIMARY KEY AUTOINCREMENT, task TEXT, complete BOOLEAN NOT NULL CHECK (complete IN (0, 1)))')
+      tx.executeSql('CREATE TABLE IF NOT EXISTS toDoList (id INTEGER PRIMARY KEY AUTOINCREMENT, task TEXT, photo TEXT, complete BOOLEAN NOT NULL CHECK (complete IN (0, 1)))')
     })
   }
 
@@ -54,8 +54,8 @@ const ToDoList = ({ route }) => {
                     let tempTaskObject = {
                       id: results.rows.item(i).id,
                       task: results.rows.item(i).task,
+                      photo: JSON.parse(results.rows.item(i).photo),
                       complete: intToBoolean(results.rows.item(i).complete),
-                      edit: false,
                     };
                     itemsCopy.push(tempTaskObject);
                   }
@@ -143,7 +143,7 @@ const ToDoList = ({ route }) => {
                       </TouchableOpacity>
                       <Text style={styles.itemText}>{item.task}</Text>
                     </View>
-                    <Pressable style={styles.updateButton} onPress={() => navigation.navigate('editTask', {
+                    <Pressable style={styles.updateButton} onPress={() => navigation.navigate('Edit Task', {
                       index: index,
                       task: item.task,
                     })}>
@@ -162,7 +162,7 @@ const ToDoList = ({ route }) => {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.writeTaskWrapper}
         >
-          <TouchableOpacity  onPress={() => navigation.navigate('addTask')}>
+          <TouchableOpacity  onPress={() => navigation.navigate('Add Task')}>
             <View style={styles.addWrapper}>
               <Text style={styles.addText}>+</Text>
             </View>
