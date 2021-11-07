@@ -39,7 +39,6 @@ const editTask = ({route}) => {
   }
 
   const savePhoto = () => {
-    console.log("Focused: ", isFocused);
     try {
       if(route.params.newPhoto !== undefined){
         setPhoto(route.params.newPhoto);
@@ -148,6 +147,27 @@ const editTask = ({route}) => {
         }
     }
 
+    const pickFromCamera = async () => {
+        if (Platform.OS !== 'web') {
+          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          if (status !== 'granted') {
+            alert('Sorry, we need camera roll permissions to make this work!');
+          } else {
+            let result = await ImagePicker.launchCameraAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.All,
+              allowsEditing: true,
+              aspect: [1, 1],
+              quality: 1,
+            });
+            console.log(result);
+      
+            if (!result.cancelled) {
+              setPhoto(result);
+            }
+          }
+        }
+      }      
+
     return(
     <View style={styles.container}>
         <View style={styles.addWrapper}>
@@ -166,9 +186,7 @@ const editTask = ({route}) => {
                 </View>
                 <TextInput style={styles.input} defaultValue={route.params.task} placeholder={'Enter Task Here'} onChangeText={(text) => updateTaskObject(text)}/>
                 <View style={styles.btnContainer}>
-                  <Pressable style={styles.editButton} onPress={() => navigation.navigate('My Camera', {
-                    startingLocation: 'Edit Task',
-                  })}>
+                  <Pressable style={styles.editButton} onPress={() => pickFromCamera()}>
                     <Text style={styles.editBtnText}>Take A Picture</Text>
                   </Pressable>
                   <Pressable style={styles.editButton} onPress={() => pickFromGallery()}>

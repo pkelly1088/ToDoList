@@ -77,6 +77,27 @@ const addTask = ({route}) => {
     }
 }
 
+const pickFromCamera = async () => {
+  if (Platform.OS !== 'web') {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      alert('Sorry, we need camera roll permissions to make this work!');
+    } else {
+      let result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
+      console.log(result);
+
+      if (!result.cancelled) {
+        setPhoto(result);
+      }
+    }
+  }
+}
+
   const handleAddTask = () => {
     Keyboard.dismiss();
     db.transaction((tx)=>{
@@ -109,9 +130,7 @@ const addTask = ({route}) => {
                 </View>
                 <TextInput style={styles.input} value={task} placeholder={'Enter Task Here'} onChangeText={(text) => setTask(text)}/>
                 <View style={styles.btnContainer}>
-                  <Pressable style={styles.addButton} onPress={() => navigation.navigate('My Camera', {
-                    startingLocation: 'Add Task',
-                  })}>
+                  <Pressable style={styles.addButton} onPress={() => pickFromCamera()}>
                     <Text style={styles.addBtnText}>Take A Picture</Text>
                   </Pressable>
                   <Pressable style={styles.addButton} onPress={() => pickFromGallery()}>
