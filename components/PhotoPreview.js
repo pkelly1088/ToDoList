@@ -22,7 +22,7 @@ const PhotoPreview = ({ route }) => {
                     <Text style={styles.photoBtnText}>Retake</Text>
                 </Pressable>
                 <Pressable style={styles.photoButton} onPress={() => navigation.navigate(`${startingLocation}`, {
-                    photo: myPhoto,
+                    newPhoto: myPhoto,
                 })}>
                     <Text style={styles.photoBtnText}>Save</Text>
                 </Pressable>

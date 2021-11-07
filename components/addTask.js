@@ -1,7 +1,8 @@
 import React, { useState, useEffect} from 'react';
-import { Text, View, TextInput, Pressable, StyleSheet, Keyboard, Alert } from 'react-native';
+import { Text, View, TextInput, Pressable, StyleSheet, Keyboard, Alert, ImageBackground } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import * as SQLite from 'expo-sqlite';
+import * as ImagePicker from 'expo-image-picker';
 
 
 function openDatabase() {
@@ -15,7 +16,7 @@ function openDatabase() {
       };
     }
   
-    const db = SQLite.openDatabase("toDoList.db");
+    const db = SQLite.openDatabase("toDoList3.db");
     return db;
   }
   
@@ -39,56 +40,54 @@ const addTask = ({route}) => {
   }
 
   const [task, setTask] = useState('');
-  const [taskObject, setTaskObject] = useState({
-    id: null,
-    task: '',
-    photo: null,
-    complete: false,
-  })
-  const [taskItems, setTaskItems] = useState([]);
   const [photo, setPhoto] = useState(null);
 
   const navigation = useNavigation();
 
   const savePhoto = () => {
     try {
-      if(route.params.photo){
-        setPhoto(route.params.photo);
-        // console.log(route.params.photo);
-      }  
+      if(route.params.newPhoto !== undefined){
+        setPhoto(route.params.newPhoto);
+      } else {
+        setPhoto(null);
+      }
     } catch (error) {
       console.log(error);  
     }
   }
 
-  const saveTaskObject = (text) => {
-    setTask(text);
-    setTaskObject({
-      id: null, 
-      task: text ,
-      photo: JSON.stringify(photo),
-      complete: false,
-     });
-  }
+  const pickFromGallery = async () => {
+    if (Platform.OS !== 'web') {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Sorry, we need camera roll permissions to make this work!');
+      } else {
+        let result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.All,
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 1,
+        });
+        console.log(result);
+
+        if (!result.cancelled) {
+          setPhoto(result);
+        }
+      }
+    }
+}
 
   const handleAddTask = () => {
     Keyboard.dismiss();
     db.transaction((tx)=>{
       tx.executeSql(
         'INSERT INTO toDoList (task, photo, complete) VALUES (?,?,?)',
-        [task, 0],
-        () => { Alert.alert('Success', `${taskObject.task} was added to your to do list.`)},
+        [task, JSON.stringify(photo), 0],
+        () => { Alert.alert('Success', `${task} was added to your to do list.`)},
         (error) => {console.log('Error Saving Task', error)}
       )
     });
-    setTaskItems([...taskItems, taskObject]);
     setTask('');
-    setTaskObject({
-      id: null,
-      task: '',
-      photo: null,
-      complete: false,
-    })
     navigation.goBack();
   }
 
@@ -98,20 +97,27 @@ const addTask = ({route}) => {
             <Text style={styles.addTitle}>Add A Task</Text>
             <View style={styles.addItemSection}>
                 <Text style={styles.addText}>Task</Text>
-                {/* {photo !== null
+                <View style={styles.photoContainer}>
+                {photo !== null
                         ? <View style={styles.photoSquare}>
                             <ImageBackground source={{uri: photo && photo.uri}} style={styles.photoView}/>
                           </View>
                         : <View style={styles.photoSquare}>
-
-                        </View>
-                      } */}
-                <TextInput style={styles.input} value={task} placeholder={'Enter Task Here'} onChangeText={(text) => saveTaskObject(text)}/>
-                <Pressable style={styles.addButton} onPress={() => navigation.navigate('My Camera', {
-                  startingLocation: 'Add Task',
-                })}>
+                            <Text style={styles.photoText}>No Photo</Text>
+                          </View>
+                }
+                </View>
+                <TextInput style={styles.input} value={task} placeholder={'Enter Task Here'} onChangeText={(text) => setTask(text)}/>
+                <View style={styles.btnContainer}>
+                  <Pressable style={styles.addButton} onPress={() => navigation.navigate('My Camera', {
+                    startingLocation: 'Add Task',
+                  })}>
                     <Text style={styles.addBtnText}>Take A Picture</Text>
-                </Pressable>
+                  </Pressable>
+                  <Pressable style={styles.addButton} onPress={() => pickFromGallery()}>
+                    <Text style={styles.addBtnText}>Pick From Gallery</Text>
+                  </Pressable>
+                </View>
                 <Pressable style={styles.addButton} onPress={() => handleAddTask()}>
                     <Text style={styles.addBtnText}>Submit</Text>
                 </Pressable>
@@ -144,41 +150,64 @@ const styles = StyleSheet.create({
         borderRadius: 60,
         borderColor: '#C0C0C0',
         borderWidth: 1,
-      },
+    },
     addButton: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 6,
-        paddingHorizontal: 16,
-        borderRadius: 4,
-        elevation: 3,
-        backgroundColor: '#57B9E2',
-        marginHorizontal: 20,
-        marginTop: 20,
-      },
-      addBtnText: {
-        paddingVertical: 6,
-        paddingHorizontal: 16,
-        fontSize: 16,
-        lineHeight: 21,
-        fontWeight: 'bold',
-        letterSpacing: 0.25,
-        color: '#1D1D1D',
-        alignItems: 'center',
-        justifyContent: 'center', 
-      },
-      addText: {
-        fontSize: 20,
-        lineHeight: 30,
-        letterSpacing: 0.25,
-        marginBottom: 12,
-      },
-      photoSquare: {
-        height: '40%',
-        width: '40%',
-        justifyContent: 'center',
-        alignItems: 'center',
-      }
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 6,
+      paddingHorizontal: 16,
+      borderRadius: 4,
+      elevation: 3,
+      backgroundColor: '#57B9E2',
+      marginHorizontal: 20,
+      marginTop: 20,
+  },
+    addBtnText: {
+      paddingVertical: 6,
+      paddingHorizontal: 16,
+      fontSize: 16,
+      lineHeight: 21,
+      fontWeight: 'bold',
+      letterSpacing: 0.25,
+      color: '#1D1D1D',
+      alignItems: 'center',
+      justifyContent: 'center', 
+    },
+    addText: {
+      fontSize: 20,
+      lineHeight: 30,
+      letterSpacing: 0.25,
+      marginBottom: 12,
+    },
+    photoContainer: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    photoSquare: {
+      height: 200,
+      width: 200,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderColor: 'grey',
+      borderWidth: 1,
+      borderStyle: 'solid',
+    },
+    photoView: {
+      width: "100%",
+      height: '100%',
+    },
+    photoText: {
+      fontSize: 16,
+      lineHeight: 24,
+      letterSpacing: 0.25,
+      opacity: 0.7,
+      alignSelf: 'center',
+    },
+    btnContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-evenly',
+    }
 });
 
 export default addTask;

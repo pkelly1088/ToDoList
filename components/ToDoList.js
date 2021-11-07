@@ -15,7 +15,7 @@ function openDatabase() {
     };
   }
 
-  const db = SQLite.openDatabase("toDoList.db");
+  const db = SQLite.openDatabase("toDoList3.db");
   return db;
 }
 
@@ -146,6 +146,7 @@ const ToDoList = ({ route }) => {
                     <Pressable style={styles.updateButton} onPress={() => navigation.navigate('Edit Task', {
                       index: index,
                       task: item.task,
+                      photo: item.photo,
                     })}>
                       <Text style={styles.updateText}>Edit</Text>
                     </Pressable>
