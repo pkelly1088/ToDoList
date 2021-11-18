@@ -1,7 +1,8 @@
 import React, { useState, useEffect} from 'react';
-import { Text, View, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity, Pressable, Alert } from 'react-native';
+import { Text, View, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity, Pressable, Alert, ScrollView, FlatList, TextInput } from 'react-native';
 import * as SQLite from 'expo-sqlite';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 function openDatabase() {
@@ -41,6 +42,8 @@ const ToDoList = ({ route }) => {
 
 
   const [taskItems, setTaskItems] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
+  const [search, setSearch] = useState('');
 
   const getData = () => {
       db.transaction((tx) => {
@@ -60,6 +63,7 @@ const ToDoList = ({ route }) => {
                     itemsCopy.push(tempTaskObject);
                   }
                   setTaskItems(itemsCopy);
+                  setFilteredData(itemsCopy);
                 }
               }
             )
@@ -123,11 +127,54 @@ const ToDoList = ({ route }) => {
 
   const check = "\u2713";
 
+  const ItemView = ({item}) => {
     return (
-      
-      <View style={styles.container}>
-  
+      <Text style={styles.searchText}>
+        {item.task.toUpperCase()}
+      </Text>
+    )
+  }
+
+  const ItemSeparatorView = () => {
+    return (
+      <View style={styles.itemSeparator}>
+
+      </View>
+    )
+  }
+
+  const searchFilter = (text) => {
+    if (text) {
+      const newData = taskItems.filter((item) => {
+        const itemData = item.task ? item.task.toUpperCase() : ''.toUpperCase();
+        const textData = text.toUpperCase();
+        return itemData.indexOf(textData) > -1;
+      });
+      setFilteredData(newData);
+      setSearch(text);
+    } else {
+      setFilteredData(taskItems);
+      setSearch(text);
+    }
+  }
+
+    return (
+    <SafeAreaView style={{flex: 1}}>
+      <ScrollView style={styles.container}>
         <View style={styles.tasksWrapper}>
+          <TextInput 
+            style={styles.input} 
+            value={search} 
+            placeholder='Search Here'
+            underlineColorAndroid='transparent'
+            onChangeText={(text) => searchFilter(text)} 
+            />
+          <FlatList 
+            data={filteredData}
+            keyExtractor={(item, index) => index.toString()}
+            ItemSeparatorComponent={ItemSeparatorView}
+            renderItem={ItemView}
+            />
           <Text style={styles.sectionTitle}>{route.params.paramKey}'s Tasks</Text>
           <View style={styles.items}>
             {
@@ -148,7 +195,7 @@ const ToDoList = ({ route }) => {
                       task: item.task,
                       photo: item.photo,
                     })}>
-                      <Text style={styles.updateText}>Edit</Text>
+                      <Text style={styles.updateText}>View</Text>
                     </Pressable>
                     <Pressable style={styles.deleteButton} onPress={() => deleteTask(index)}>
                       <Text style={styles.deleteText}>Delete</Text>
@@ -170,7 +217,8 @@ const ToDoList = ({ route }) => {
           </TouchableOpacity>
   
         </KeyboardAvoidingView>
-      </View>
+      </ScrollView>
+    </SafeAreaView>
     );
   };
 
@@ -203,10 +251,10 @@ const ToDoList = ({ route }) => {
       paddingVertical: 15,
       paddingHorizontal: 15,
       backgroundColor: '#fff',
-      borderRadius: 60,
+      borderRadius: 4,
       borderColor: '#C0C0C0',
       borderWidth: 1,
-      width: 250,
+      marginBottom: 32,
     },
     updateInput: {
       paddingVertical: 15,
@@ -316,5 +364,13 @@ const ToDoList = ({ route }) => {
     fontSize: 36,
     lineHeight: 36,
   },
+  itemSeparator: {
+    height: 0.5,
+    width: '100%',
+    backgroundColor: '#c8c8c8',
+  },
+  searchText: {
+    padding: 15,
+  }
   });
 export default ToDoList;

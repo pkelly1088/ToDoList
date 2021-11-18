@@ -1,8 +1,10 @@
 import React, { useState, useEffect} from 'react';
-import { Text, View, TextInput, Pressable, StyleSheet, Keyboard, Alert, ImageBackground } from 'react-native';
+import { Text, View, TextInput, Pressable, StyleSheet, Keyboard, Alert, ImageBackground, ScrollView } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import * as SQLite from 'expo-sqlite';
 import * as ImagePicker from 'expo-image-picker';
+import moment from 'moment';
+import RNCalendarEvents from "react-native-calendar-events";
 
 function openDatabase() {
     if (Platform.OS === "web") {
@@ -169,11 +171,13 @@ const editTask = ({route}) => {
       }      
 
     return(
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
         <View style={styles.addWrapper}>
-            <Text style={styles.addTitle}>Edit Task</Text>
+            <Text style={styles.addTitle}>Task: {route.params.task}</Text>
             <View style={styles.addItemSection}>
-                <Text style={styles.addText}>Task</Text>
+                <Text style={styles.addText}>Edit Task</Text>
+                <TextInput style={styles.input} defaultValue={route.params.task} placeholder={'Enter Task Here'} onChangeText={(text) => updateTaskObject(text)} />
+                <Text style={styles.editPhotoText}>Edit Photo</Text>
                 <View style={styles.photoContainer}>
                 {photo !== null
                         ? <View style={styles.photoSquare}>
@@ -184,21 +188,20 @@ const editTask = ({route}) => {
                           </View>
                 }
                 </View>
-                <TextInput style={styles.input} defaultValue={route.params.task} placeholder={'Enter Task Here'} onChangeText={(text) => updateTaskObject(text)}/>
                 <View style={styles.btnContainer}>
                   <Pressable style={styles.editButton} onPress={() => pickFromCamera()}>
-                    <Text style={styles.editBtnText}>Take A Picture</Text>
+                    <Text style={styles.editBtnText}>Camera</Text>
                   </Pressable>
                   <Pressable style={styles.editButton} onPress={() => pickFromGallery()}>
-                    <Text style={styles.editBtnText}>Pick From Gallery</Text>
+                    <Text style={styles.editBtnText}>Gallery</Text>
                   </Pressable>
                 </View>
-                <Pressable style={styles.editButton} onPress={() => handleUpdateTask()}>
-                    <Text style={styles.editBtnText}>Submit</Text>
+                <Pressable style={styles.submitButton} onPress={() => handleUpdateTask()}>
+                  <Text style={styles.submitBtnText}>Submit</Text>
                 </Pressable>
             </View>
         </View>
-    </View>
+    </ScrollView>
     )
 };
 
@@ -216,13 +219,13 @@ const styles = StyleSheet.create({
       fontWeight: 'bold',
     },
     addItemSection: {
-        marginTop: 12,
+        marginTop: 30,
     },
     input: {
         paddingVertical: 15,
         paddingHorizontal: 15,
         backgroundColor: '#fff',
-        borderRadius: 60,
+        borderRadius: 4,
         borderColor: '#C0C0C0',
         borderWidth: 1,
       },
@@ -233,8 +236,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         borderRadius: 4,
         elevation: 3,
-        backgroundColor: '#57B9E2',
-        marginHorizontal: 20,
+        backgroundColor: '#ffffff',
+        borderColor: '#57B9E2',
+        borderStyle: 'solid',
+        borderWidth: 2,
         marginTop: 20,
       },
       editBtnText: {
@@ -244,7 +249,28 @@ const styles = StyleSheet.create({
         lineHeight: 21,
         fontWeight: 'bold',
         letterSpacing: 0.25,
-        color: '#1D1D1D',
+        color: '#1d1d1d',
+        alignItems: 'center',
+        justifyContent: 'center', 
+      },
+      submitButton: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 6,
+        paddingHorizontal: 16,
+        borderRadius: 4,
+        elevation: 3,
+        backgroundColor: '#57B9E2',
+        marginTop: 20,
+      },
+      submitBtnText: {
+        paddingVertical: 6,
+        paddingHorizontal: 16,
+        fontSize: 16,
+        lineHeight: 21,
+        fontWeight: 'bold',
+        letterSpacing: 0.25,
+        color: '#1d1d1d',
         alignItems: 'center',
         justifyContent: 'center', 
       },
@@ -254,14 +280,22 @@ const styles = StyleSheet.create({
         letterSpacing: 0.25,
         marginBottom: 12,
       },
+      editPhotoText: {
+        fontSize: 20,
+        lineHeight: 30,
+        letterSpacing: 0.25,
+        marginBottom: 12,
+        marginTop: 32,
+      },
       photoContainer: {
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 12,
+        marginTop: 12,
       },
       photoSquare: {
-        height: 200,
-        width: 200,
+        height: 300,
+        width: 300,
         justifyContent: 'center',
         alignItems: 'center',
         borderColor: 'grey',
@@ -281,7 +315,7 @@ const styles = StyleSheet.create({
       },
       btnContainer: {
         flexDirection: 'row',
-        justifyContent: 'space-evenly',
+        justifyContent: 'space-between',
       },
 });
 

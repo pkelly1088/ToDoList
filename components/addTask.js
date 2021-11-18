@@ -1,9 +1,11 @@
 import React, { useState, useEffect} from 'react';
-import { Text, View, TextInput, Pressable, StyleSheet, Keyboard, Alert, ImageBackground } from 'react-native';
+import { Text, View, TextInput, Pressable, StyleSheet, Keyboard, Alert, ImageBackground, ScrollView } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import * as SQLite from 'expo-sqlite';
 import * as ImagePicker from 'expo-image-picker';
-
+import moment from 'moment';
+import * as Calendar from 'expo-calendar';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 function openDatabase() {
     if (Platform.OS === "web") {
@@ -27,11 +29,11 @@ const addTask = ({route}) => {
   const isFocused = useIsFocused();
 
 
-    useEffect(() => {
-        console.log("Focused: ", isFocused);
-        createTable();
-        savePhoto();
-    }, [isFocused]);
+  useEffect(() => {
+    console.log("Focused: ", isFocused);
+    createTable();
+    savePhoto();
+  }, [isFocused]);
 
   const createTable = () => {
     db.transaction((tx) => {
@@ -41,8 +43,112 @@ const addTask = ({route}) => {
 
   const [task, setTask] = useState('');
   const [photo, setPhoto] = useState(null);
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date());
+  const [startMode, setStartMode] = useState('date');
+  const [endMode, setEndMode] = useState('date');
+  const [startShow, setStartShow] = useState(false);
+  const [endShow, setEndShow] = useState(false);
 
   const navigation = useNavigation();
+
+  const onStartChange = (event, selectedDate) => {
+    const currentDate = selectedDate || startDate;
+    setStartShow(Platform.OS === 'ios');
+    setStartDate(currentDate);
+    console.log('start date:',currentDate);
+  };
+
+  const showStartMode = (currentMode) => {
+    setStartShow(true);
+    setStartMode(currentMode);
+  };
+
+  const showStartDatepicker = () => {
+    showStartMode('date');
+  };
+
+  const showStartTimepicker = () => {
+    showStartMode('time');
+  };
+
+  const onEndChange = (event, selectedDate) => {
+    const currentDate = selectedDate || endDate;
+    setEndShow(Platform.OS === 'ios');
+    setEndDate(currentDate);
+    console.log('end date:',currentDate);
+  };
+
+  const showEndMode = (currentMode) => {
+    setEndShow(true);
+    setEndMode(currentMode);
+  };
+
+  const showEndDatepicker = () => {
+    showEndMode('date');
+  };
+
+  const showEndTimepicker = () => {
+    showEndMode('time');
+  };
+
+  const addEventToCalendar = async() => {
+    const { status } = await Calendar.requestCalendarPermissionsAsync();
+      if (status === 'granted') {
+        const calendars = await Calendar.getCalendarsAsync();
+        let myCalendars = calendars;
+        if(myCalendars[0] === undefined){
+          createCalendar();
+        } else if(myCalendars[0].id === '1'){
+          if(task === ''){
+            Alert.alert('Please enter a task to add it to the calendar');
+          } else {
+            createCalendarEvent(myCalendars[0].id);
+          }
+        }
+      }
+  }
+
+  const getDefaultCalendarSource = async() => {
+    const defaultCalendar = await Calendar.getDefaultCalendarAsync();
+    return defaultCalendar.source;
+  }
+
+  const createCalendar = async() => {
+    const defaultCalendarSource =
+      Platform.OS === 'ios'
+        ? await getDefaultCalendarSource()
+        : { isLocalAccount: true, name: 'Expo Calendar' };
+    const newCalendarID = await Calendar.createCalendarAsync({
+      title: 'Expo Calendar',
+      color: 'blue',
+      entityType: Calendar.EntityTypes.EVENT,
+      sourceId: defaultCalendarSource.id,
+      source: defaultCalendarSource,
+      name: 'internalCalendarName',
+      ownerAccount: 'personal',
+      accessLevel: Calendar.CalendarAccessLevel.OWNER,
+    });
+    console.log(`Your new calendar ID is: ${newCalendarID}`);
+  }
+
+  const createCalendarEvent = async(id) => {
+    Calendar.createEventAsync(id, {
+      title: task,
+      startDate: startDate,
+      endDate: endDate,
+      timeZone: 'Eastern Standard Time'
+    })
+    .then((res) => {
+      console.log('id number', res);
+    })
+    .then(() => {
+      alert(`Success! Your task of ${task} was added to the calendar, from ${moment.utc(startDate).local().format('lll')} to ${moment.utc(endDate).local().format('lll')}`)
+    })
+    .catch((err) => {
+      console.log(err);
+    })
+  }
 
   const savePhoto = () => {
     try {
@@ -81,7 +187,7 @@ const pickFromCamera = async () => {
   if (Platform.OS !== 'web') {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      alert('Sorry, we need camera roll permissions to make this work!');
+      Alert.alert('Sorry, we need camera roll permissions to make this work!');
     } else {
       let result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.All,
@@ -113,11 +219,13 @@ const pickFromCamera = async () => {
   }
 
     return(
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
         <View style={styles.addWrapper}>
             <Text style={styles.addTitle}>Add A Task</Text>
             <View style={styles.addItemSection}>
-                <Text style={styles.addText}>Task</Text>
+                <Text style={styles.addText}>Task:</Text>
+                <TextInput style={styles.input} value={task} placeholder={'Enter Task Here'} onChangeText={(text) => setTask(text)}/>
+                <Text style={styles.addText}>Photo:</Text>
                 <View style={styles.photoContainer}>
                 {photo !== null
                         ? <View style={styles.photoSquare}>
@@ -128,21 +236,65 @@ const pickFromCamera = async () => {
                           </View>
                 }
                 </View>
-                <TextInput style={styles.input} value={task} placeholder={'Enter Task Here'} onChangeText={(text) => setTask(text)}/>
                 <View style={styles.btnContainer}>
-                  <Pressable style={styles.addButton} onPress={() => pickFromCamera()}>
-                    <Text style={styles.addBtnText}>Take A Picture</Text>
+                  <Pressable style={styles.addCameraButton} onPress={() => pickFromCamera()}>
+                    <Text style={styles.addBtnText}>Camera</Text>
                   </Pressable>
-                  <Pressable style={styles.addButton} onPress={() => pickFromGallery()}>
-                    <Text style={styles.addBtnText}>Pick From Gallery</Text>
+                  <Pressable style={styles.addCameraButton} onPress={() => pickFromGallery()}>
+                    <Text style={styles.addBtnText}>Gallery</Text>
                   </Pressable>
                 </View>
-                <Pressable style={styles.addButton} onPress={() => handleAddTask()}>
+                <View style={styles.eventContainer}>
+                  <Text style={styles.addText}>Start Date: {moment.utc(startDate).local().format('lll')}</Text>
+                  <View style={styles.btnContainer}>
+                    <Pressable style={styles.addCameraButton} onPress={() => showStartDatepicker()}>
+                      <Text style={styles.addBtnText}>Date Picker</Text>
+                    </Pressable>
+                    <Pressable style={styles.addCameraButton} onPress={() => showStartTimepicker()}>
+                      <Text style={styles.addBtnText}>Time Picker</Text>
+                    </Pressable>
+                    {startShow && (
+                      <DateTimePicker
+                        testID="dateTimePicker"
+                        value={startDate}
+                        mode={startMode}
+                        is24Hour={true}
+                        display="default"
+                        onChange={onStartChange}
+                      />
+                    )}
+                  </View>
+                  <Text style={styles.addText}>End Date: {moment.utc(endDate).local().format('lll')}</Text>
+                  <View style={styles.btnContainer}>
+                    <Pressable style={styles.addCameraButton} onPress={() => showEndDatepicker()}>
+                      <Text style={styles.addBtnText}>Date Picker</Text>
+                    </Pressable>
+                    <Pressable style={styles.addCameraButton} onPress={() => showEndTimepicker()}>
+                      <Text style={styles.addBtnText}>Time Picker</Text>
+                    </Pressable>
+                    {endShow && (
+                      <DateTimePicker
+                        testID="dateTimePicker"
+                        value={endDate}
+                        mode={endMode}
+                        is24Hour={true}
+                        display="default"
+                        onChange={onEndChange}
+                      />
+                    )}
+                  </View>
+                  <View style={styles.calendarBtnContainer}>
+                    <Pressable style={styles.addCameraButton} onPress={() => addEventToCalendar()}>
+                      <Text style={styles.addBtnText}>Add to Calendar</Text>
+                    </Pressable>
+                  </View>
+                </View>
+                <Pressable style={styles.submitButton} onPress={() => handleAddTask()}>
                     <Text style={styles.addBtnText}>Submit</Text>
                 </Pressable>
             </View>
         </View>
-    </View>
+    </ScrollView>
     )
 };
 
@@ -166,9 +318,10 @@ const styles = StyleSheet.create({
         paddingVertical: 15,
         paddingHorizontal: 15,
         backgroundColor: '#fff',
-        borderRadius: 60,
+        borderRadius: 4,
         borderColor: '#C0C0C0',
         borderWidth: 1,
+        marginBottom: 32,
     },
     addButton: {
       alignItems: 'center',
@@ -178,9 +331,20 @@ const styles = StyleSheet.create({
       borderRadius: 4,
       elevation: 3,
       backgroundColor: '#57B9E2',
-      marginHorizontal: 20,
       marginTop: 20,
-  },
+    },
+    addCameraButton: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 6,
+      paddingHorizontal: 16,
+      borderRadius: 4,
+      elevation: 3,
+      backgroundColor: '#ffffff',
+      borderColor: '#57B9E2',
+      borderStyle: 'solid',
+      borderWidth: 2,
+},
     addBtnText: {
       paddingVertical: 6,
       paddingHorizontal: 16,
@@ -192,6 +356,16 @@ const styles = StyleSheet.create({
       alignItems: 'center',
       justifyContent: 'center', 
     },
+    submitButton: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 6,
+      paddingHorizontal: 16,
+      borderRadius: 4,
+      elevation: 3,
+      backgroundColor: '#57B9E2',
+      marginVertical: 36,
+    },
     addText: {
       fontSize: 20,
       lineHeight: 30,
@@ -201,11 +375,11 @@ const styles = StyleSheet.create({
     photoContainer: {
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: 20,
+      marginBottom: 16,
     },
     photoSquare: {
-      height: 200,
-      width: 200,
+      height: 300,
+      width: 300,
       justifyContent: 'center',
       alignItems: 'center',
       borderColor: 'grey',
@@ -225,8 +399,18 @@ const styles = StyleSheet.create({
     },
     btnContainer: {
       flexDirection: 'row',
-      justifyContent: 'space-evenly',
-    }
+      justifyContent: 'space-between',
+      marginBottom: 16,
+    },
+    eventContainer: {
+      paddingTop: 24,
+      paddingHorizontal: 20,
+    },
+    calendarBtnContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      marginBottom: 16,
+    },
 });
 
 export default addTask;
