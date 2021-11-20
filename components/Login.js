@@ -37,7 +37,7 @@ const Login = () => {
       paddingVertical: 15,
       paddingHorizontal: 15,
       backgroundColor: '#fff',
-      borderRadius: 60,
+      borderRadius: 4,
       borderColor: '#C0C0C0',
       borderWidth: 1,
       width: 250,

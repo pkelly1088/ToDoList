@@ -86,6 +86,7 @@ const ToDoList = ({ route }) => {
       let itemsCopy = [...taskItems];
       itemsCopy.splice(index, 1, myTask);
       setTaskItems(itemsCopy);
+      setFilteredData(itemsCopy);
     } else if (myTask.complete === true) {
       db.transaction((tx) => {
         tx.executeSql(
@@ -98,7 +99,8 @@ const ToDoList = ({ route }) => {
       myTask.complete = false
       let itemsCopy = [...taskItems];
       itemsCopy.splice(index, 1, myTask);
-      setTaskItems(itemsCopy); 
+      setTaskItems(itemsCopy);
+      setFilteredData(itemsCopy);
     }
   }
 
@@ -123,25 +125,10 @@ const ToDoList = ({ route }) => {
     })
     itemsCopy.splice(index, 1);
     setTaskItems(itemsCopy);
+    setFilteredData(itemsCopy);
   }
 
   const check = "\u2713";
-
-  const ItemView = ({item}) => {
-    return (
-      <Text style={styles.searchText}>
-        {item.task.toUpperCase()}
-      </Text>
-    )
-  }
-
-  const ItemSeparatorView = () => {
-    return (
-      <View style={styles.itemSeparator}>
-
-      </View>
-    )
-  }
 
   const searchFilter = (text) => {
     if (text) {
@@ -158,29 +145,9 @@ const ToDoList = ({ route }) => {
     }
   }
 
+  const ItemView = ({item, index}) => {
     return (
-    <SafeAreaView style={{flex: 1}}>
-      <ScrollView style={styles.container}>
-        <View style={styles.tasksWrapper}>
-          <TextInput 
-            style={styles.input} 
-            value={search} 
-            placeholder='Search Here'
-            underlineColorAndroid='transparent'
-            onChangeText={(text) => searchFilter(text)} 
-            />
-          <FlatList 
-            data={filteredData}
-            keyExtractor={(item, index) => index.toString()}
-            ItemSeparatorComponent={ItemSeparatorView}
-            renderItem={ItemView}
-            />
-          <Text style={styles.sectionTitle}>{route.params.paramKey}'s Tasks</Text>
-          <View style={styles.items}>
-            {
-              taskItems.map((item, index) => {
-                return (
-                  <View key={(index).toString()} style={styles.item}>
+      <View key={(index).toString()} style={styles.item}>
                     <View style={styles.itemLeft}>
                       <TouchableOpacity onPress={() => markTaskComplete(index)}>
                       {item.complete === true
@@ -201,21 +168,38 @@ const ToDoList = ({ route }) => {
                       <Text style={styles.deleteText}>Delete</Text>
                     </Pressable>
                   </View>
-                )
-              })
-            }
+    )
+  }
+
+    return (
+    <SafeAreaView style={{flex: 1, backgroundColor: '#E8EAED'}}>
+      <ScrollView style={styles.container}>
+        <View style={styles.tasksWrapper}>
+          <View style={styles.titleWrapper}>
+            <Text style={styles.sectionTitle}>{route.params.paramKey}'s Tasks</Text>
+            <Pressable style={styles.taskButton} onPress={() => navigation.navigate('Add Task')}>
+              <Text style={styles.deleteText}>Add Task</Text>
+            </Pressable>
+          </View>
+          <TextInput 
+            style={styles.input} 
+            value={search} 
+            placeholder='Search Here'
+            underlineColorAndroid='transparent'
+            onChangeText={(text) => searchFilter(text)} 
+            />
+          <View style={styles.items}>
+          <FlatList 
+            data={filteredData}
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={ItemView}
+            />
           </View>
         </View>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.writeTaskWrapper}
         >
-          <TouchableOpacity  onPress={() => navigation.navigate('Add Task')}>
-            <View style={styles.addWrapper}>
-              <Text style={styles.addText}>+</Text>
-            </View>
-          </TouchableOpacity>
-  
         </KeyboardAvoidingView>
       </ScrollView>
     </SafeAreaView>
@@ -228,15 +212,22 @@ const ToDoList = ({ route }) => {
       backgroundColor: '#E8EAED',
     },
     tasksWrapper: {
-      paddingTop: 80,
-      paddingHorizontal: 20,
+      paddingTop: 12,
+      paddingHorizontal: 24,
+    },
+    titleWrapper: {
+      flexDirection: 'row',
+      justifyContent:'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
     },
     sectionTitle: {
       fontSize: 24,
       fontWeight: 'bold',
+      paddingBottom: 24,
     },
     items: {
-      marginTop: 30,
+      marginTop: 12,
     },
     writeTaskWrapper: {
       position: 'absolute',
@@ -248,17 +239,17 @@ const ToDoList = ({ route }) => {
   
     },
     input: {
-      paddingVertical: 15,
-      paddingHorizontal: 15,
+      paddingVertical: 12,
+      paddingHorizontal: 12,
       backgroundColor: '#fff',
       borderRadius: 4,
       borderColor: '#C0C0C0',
       borderWidth: 1,
-      marginBottom: 32,
+      marginBottom: 16,
     },
     updateInput: {
-      paddingVertical: 15,
-      paddingHorizontal: 15,
+      paddingVertical: 12,
+      paddingHorizontal: 12,
       backgroundColor: '#fff',
       borderRadius: 60,
       borderColor: '#C0C0C0',
@@ -360,14 +351,18 @@ const ToDoList = ({ route }) => {
     letterSpacing: 0.25,
     color: '#1D1D1D',
   },
+  taskButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+    elevation: 3,
+    backgroundColor: '#7dce7b',
+  },
   addText: {
     fontSize: 36,
     lineHeight: 36,
-  },
-  itemSeparator: {
-    height: 0.5,
-    width: '100%',
-    backgroundColor: '#c8c8c8',
   },
   searchText: {
     padding: 15,

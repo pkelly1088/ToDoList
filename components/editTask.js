@@ -3,8 +3,6 @@ import { Text, View, TextInput, Pressable, StyleSheet, Keyboard, Alert, ImageBac
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import * as SQLite from 'expo-sqlite';
 import * as ImagePicker from 'expo-image-picker';
-import moment from 'moment';
-import RNCalendarEvents from "react-native-calendar-events";
 
 function openDatabase() {
     if (Platform.OS === "web") {
@@ -34,10 +32,8 @@ const editTask = ({route}) => {
   }, [isFocused]);
 
   const saveIndex = () => {
-      if(route.params.index){
         setTaskIndex (route.params.index);
         console.log(route.params.index);
-      }
   }
 
   const savePhoto = () => {
@@ -46,7 +42,6 @@ const editTask = ({route}) => {
         setPhoto(route.params.newPhoto);
       } else if(route.params.photo !== undefined){
         setPhoto(route.params.photo);
-        console.log(route.params.photo);
       } else {
         setPhoto(null);
       }
@@ -90,7 +85,7 @@ const editTask = ({route}) => {
   })
   const [taskItems, setTaskItems] = useState([]);
   const [photo, setPhoto] = useState(null);
-  const [taskIndex, setTaskIndex] = useState(null);
+  const [taskIndex, setTaskIndex] = useState(0);
 
   const navigation = useNavigation();
 
@@ -261,7 +256,7 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         elevation: 3,
         backgroundColor: '#57B9E2',
-        marginTop: 20,
+        marginVertical: 36,
       },
       submitBtnText: {
         paddingVertical: 6,
